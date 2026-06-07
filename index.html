@@ -99,6 +99,64 @@
         .contact-area { background: #fff; padding: 60px 20px; text-align: center; }
         .btn-download { background: var(--maroon); color: white; padding: 15px 40px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 20px; }
         .btn-download:hover { transform: scale(1.05); background: #440000; }
+
+        /*date scratch reveal*/
+        .date-reveal-container {
+    text-align: center;
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.date-reveal-container h2 {
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.date-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    justify-items: center;
+}
+
+.scratch-circle {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.date-value {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: #222;
+}
+
+.scratch-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.label {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+    font-weight: 600;
+}
     </style>
 </head>
 <body>
@@ -143,6 +201,42 @@
                 <p>S/o : Alpaben Amitbhai Mehta</p>
             </div>
         </div>
+    </section>
+<!-- date reveal animation -->
+    <section>
+        <div class="date-reveal-container">
+
+    <h2>🎉 Scratch to Reveal the Date</h2>
+
+    <div class="date-grid">
+
+        <div>
+            <div class="scratch-circle">
+                <div class="date-value">19</div>
+                <canvas class="scratch-canvas"></canvas>
+            </div>
+            <div class="label">DAY</div>
+        </div>
+
+        <div>
+            <div class="scratch-circle">
+                <div class="date-value">JAN</div>
+                <canvas class="scratch-canvas"></canvas>
+            </div>
+            <div class="label">MONTH</div>
+        </div>
+
+        <div>
+            <div class="scratch-circle">
+                <div class="date-value">2027</div>
+                <canvas class="scratch-canvas"></canvas>
+            </div>
+            <div class="label">YEAR</div>
+        </div>
+
+    </div>
+
+</div>
     </section>
 
     <section id="sangeet" class="sangeet-bg">
@@ -329,6 +423,114 @@ createApp({
         });
     }
 }).mount('#app');
+
+document.querySelectorAll('.scratch-canvas').forEach(canvas => {
+
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 120;
+    canvas.height = 120;
+
+    // Scratch cover
+    ctx.fillStyle = '#B8B8B8';
+    ctx.beginPath();
+    ctx.arc(60, 60, 60, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Text on cover
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SCRATCH', 60, 60);
+
+    let scratching = false;
+
+    function scratch(x, y) {
+        ctx.globalCompositeOperation = 'destination-out';
+
+        ctx.beginPath();
+        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+
+        if (e.touches) {
+            return {
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
+            };
+        }
+
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
+
+    canvas.addEventListener('mousedown', () => scratching = true);
+    canvas.addEventListener('mouseup', () => scratching = false);
+    canvas.addEventListener('mouseleave', () => scratching = false);
+
+    canvas.addEventListener('mousemove', e => {
+        if (!scratching) return;
+        const pos = getPos(e);
+        scratch(pos.x, pos.y);
+    });
+
+    canvas.addEventListener('touchstart', () => scratching = true);
+
+    canvas.addEventListener('touchend', () => scratching = false);
+
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (!scratching) return;
+
+        const pos = getPos(e);
+        scratch(pos.x, pos.y);
+
+    }, { passive: false });
+
+    // Auto remove after ~50% scratched
+    function checkReveal() {
+
+        const imageData = ctx.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        let transparentPixels = 0;
+
+        for (let i = 3; i < imageData.data.length; i += 4) {
+            if (imageData.data[i] === 0) {
+                transparentPixels++;
+            }
+        }
+
+        const percent =
+            transparentPixels /
+            (imageData.data.length / 4);
+
+        if (percent > 0.50) {
+
+            canvas.style.transition = 'opacity 0.4s ease';
+            canvas.style.opacity = '0';
+
+            setTimeout(() => {
+                canvas.style.display = 'none';
+            }, 400);
+
+        }
+    }
+
+    setInterval(checkReveal, 1000);
+
+});
+
 </script>
 
 </body>
